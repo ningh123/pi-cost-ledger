@@ -60,9 +60,9 @@ const HELP = [
 	"Tokens come from provider usage records; cost is what pi recorded when the",
 	"call ran (catalog estimate, or provider-reported billed cost where pi has",
 	"it). Cache is the cumulative share of prompt tokens served from the prompt",
-	"cache. Tool results and summaries whose log entry names no model are grouped",
-	"under tools/summaries. Ranges are whole local days. Everything stays on",
-	"this machine.",
+	"cache. Tool results and summaries whose log entry names no provider or model",
+	"are grouped under tools/summaries. Ranges are whole local days. Everything",
+	"stays on this machine.",
 ].join("\n");
 
 interface Subcommand {

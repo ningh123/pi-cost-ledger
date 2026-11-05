@@ -8,80 +8,49 @@ All notable changes to this project are documented in this file. The format foll
 
 ### Added
 
-- Bare `/cost` opens an interactive table for the current project, with today,
-  the last 7 days, the last 30 days, and all time one key away. The plain-text
-  panel also shows today, 7-day, and 30-day totals so the selected range is
-  always anchored to the month.
-- Project, provider, and provider/model scopes. Project and provider scopes
-  group rows by provider and model; `v` pivots to project rows without changing
-  the scope or total. A model scope lists every project where that model ran.
-  Enter on a project row in project grouping focuses that project.
-- `p`/`P` opens the project picker; `m` opens the provider/model picker. Pickers
-  list every entity known from all time with its cost in the selected range, so
-  an entity with no usage in the current range still appears at `$0`. `all
-  projects` and `all providers` clear the corresponding scope; the provider/model
-  picker is global and clears the project scope.
+- `/cost` opens an interactive cost table for the current project, with today,
+  the last 7 days, the last 30 days, and all time one key away. A pinned total
+  stays visible while rows scroll.
+- Project, provider, and provider/model scopes, plus a `v` pivot between
+  provider/model and project rows. A model scope shows every project where that
+  model ran; Enter on a project row focuses it.
+- `p`/`P` opens the project picker and `m` opens the provider/model picker. Both
+  list every entity the ledger has seen with its cost in the selected range, so
+  an entity with no usage in the current range still appears at `$0`.
+  `all projects` and `all providers` clear scopes; the provider/model picker is
+  global and clears the project scope.
 - `/` searches the current picker, or projects, providers, and models together
-  from the table. Escape clears the query before it cancels the picker.
-- `1`–`4` and `←`/`→` switch ranges in the table; `1`–`9` apply a picker option
-  and `←`/`→` switch ranges inside a picker. In a search, digits type into the
-  query. `↑`/`↓` select, `PgUp`/`PgDn` page by visible rows/options, `s` cycles
-  the sort column, `r` re-reads the session files, and `q`/Escape quits.
-- A pinned total row mirrors the active table columns and stays visible while
-  rows scroll. Responsive columns keep `cost` and move lower-priority metrics to
-  continuation lines instead of dropping them; provider names and the model
-  indent keep a minimum label budget. Wide characters and emoji are measured by
-  terminal columns.
-- The panel keeps one height for the session, derived from the full ledger and
-  capped at 20 lines and roughly 60% of the terminal. Short reports are padded
-  instead of resizing the dock; on very short terminals the panel shrinks
-  further and never occupies the last row.
+  from the table. Escape clears a query before it closes the picker.
+- Keyboard controls: `1`–`4` and `←`/`→` switch ranges; `1`–`9` apply picker
+  options; `↑`/`↓` and `PgUp`/`PgDn` navigate; `s` cycles sort columns; `r`
+  re-reads session files; `q`/Escape quit.
+- The table adapts to terminal width, keeping cost on the row and moving
+  lower-priority metrics to continuation lines instead of dropping them. The
+  panel keeps one height for the session, pads short reports, and needs at least
+  18 columns.
+- Plain-text reports show a headline, a today/7-day/30-day overview, the model
+  breakdown with provider names, and the project breakdown when the scope is all
+  projects. Multi-day ranges also show a daily trend line.
 - `/cost today|7d|30d|all [project|all]`, `/cost text [range] [scope]`, and
-  `/cost refresh` print the plain-text panel. `/cost refresh` uses the saved
-  plain-text scope outside the TUI; the interactive view always starts with the
-  current project.
-- `/cost default <range> [project|all]` persists the opening range and the
-  plain-text default scope. Settings and the index are written atomically, and a
-  missing settings or sessions directory is created or tolerated as appropriate.
+  `/cost refresh` print the plain panel. `/cost default` saves the opening range
+  and plain-text scope. Subcommands complete with Tab.
 - RPC mode receives the plain panel as a notification; print and JSON modes
-  write it to stderr so stdout stays reserved for the model and JSON streams.
-- Session logs are discovered under the default `<agent-dir>/sessions` root and
-  the active configured session directory (`--session-dir`,
-  `PI_CODING_AGENT_SESSION_DIR`, or the `sessionDir` setting), including flat
-  directories that store `.jsonl` files directly.
-- Assistant messages, tool results from nested calls, standalone `usage` entries
-  (cache warming), and compaction/branch summaries are all counted, matching
-  pi's own session totals. Tool results and summaries whose log entry names no
-  model are grouped under `tools / summaries` rather than being attributed to
-  the outer session model.
-- An on-disk index stores one summary per session, folded into per-day,
-  per-provider, per-model buckets. Files are re-read only when their size or
-  mtime changes, and `/cost refresh` forces a full re-read.
-- Forked and branch-extracted sessions count copied usage once across files.
-  Dedupe uses the entry id plus its bucket and totals, because pi ids are short
-  and unique only within a session, and groups byte-identical copies by session
-  header id. Provenance ordering keeps copied history with the original project
-  whenever the source file is still present.
-- The index is strictly a cache. It is rebuilt when the local time zone, parser
-  version, or index shape changes, and a deleted session is pruned. A session
-  that is temporarily unreadable keeps its last indexed totals and produces a
-  warning instead of disappearing from the report.
-- Undated legacy usage entries fall back to the session header timestamp before
-  the file mtime, so old logs land on a day closer to when they were written.
-- Costs are what pi recorded when the call ran: catalog pricing or a
-  provider-reported billed total where pi has one. History is never re-priced.
-  Money formatting scales from four decimals below a cent through `k`, `M`, `B`,
-  and `T` units, with explicit rounding boundaries.
-- Cache rates are the cumulative `cacheRead / (input + cacheRead + cacheWrite)`
-  share shown in pi's session info. Calls count usage-bearing records, including
-  summaries and cache warming; all-zero records from failed calls are ignored.
-- Ranges are whole local calendar days, including leap days and daylight-saving
-  transitions, and future-dated records are excluded until their day starts.
-- Labels from session logs and the index are stripped of terminal escape and
-  control characters before rendering.
-- The extension registers one command and performs no background work. It reads
-  only local session logs and writes only its settings and usage index; it never
-  talks to the network or reads credentials.
-- The package declares pi's host packages as peer dependencies, ships every
-  runtime module in its tarball, and is validated by type checking, Biome,
-  Node's test runner, and a packaged-file assertion in CI.
+  write it to stderr so stdout stays reserved for model and JSON output.
+- Session logs are discovered in the default agent sessions directory and the
+  active configured session directory, including flat `.jsonl` directories.
+- Usage from assistant messages, nested tool results, standalone usage entries,
+  and compaction/branch summaries is counted, matching pi's session totals.
+  Records that name neither a provider nor a model appear under `tools` /
+  `summaries`.
+- An on-disk index caches per-session totals and re-reads only changed files;
+  `/cost refresh` forces a full re-read. The index is safe to delete.
+- Forked and branch-extracted sessions count copied usage once across files,
+  including copies reached through different paths.
+- A deleted session is pruned; a temporarily unreadable session keeps its last
+  indexed totals and produces a warning. The index rebuilds when the local time
+  zone changes.
+- Cost is what pi recorded at call time (equivalent API price), never re-priced.
+  Cache hit rate is cumulative; calls count usage records and ignore all-zero
+  failed calls. Ranges are whole local calendar days.
+- Everything is computed locally: no network access, no credentials, no
+  background work, and session-derived labels are sanitized before rendering.
