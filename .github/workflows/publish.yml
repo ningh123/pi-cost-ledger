@@ -1,0 +1,92 @@
+name: Publish
+
+# npm publishing through trusted publishing: the registry verifies this
+# workflow's OIDC identity against the trusted publisher configured for the
+# package, so there is no token to store, rotate, or leak. Pushing a vX.Y.Z
+# tag publishes the version in package.json and then cuts its GitHub Release;
+# a manually published Release does the same. workflow_dispatch publishes
+# straight from a ref, which also covers tags too old to carry this workflow
+# -- a tag or release only fires the workflow at its commit.
+#
+# One job serves every trigger, and a Release cut by this workflow (with
+# GITHUB_TOKEN) deliberately does NOT re-fire the `release` event: GitHub
+# suppresses GITHUB_TOKEN-caused events to prevent recursive runs, so a
+# pushed tag can never double-publish through both triggers.
+
+on:
+  push:
+    tags: ['v*']
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  publish:
+    # A fork's tag push must not reach this repository's trusted publisher.
+    if: github.repository == 'ningh123/pi-cost-ledger'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      # Cutting the release after a successful npm publish.
+      contents: write
+      # What trusted publishing verifies: the workflow's OIDC identity.
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          # Active LTS; satisfies the package's engines floor (>= 22.19.0).
+          # Its bundled npm 11.x already covers the npm >= 11.5.1 that
+          # trusted publishing requires, so no manual npm upgrade step.
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Check the tag (or release) against package.json
+        # Dispatch publishes straight from a ref, so there is no tag to check.
+        # The ref is passed through the environment, never interpolated into
+        # the shell: git tag names may contain shell metacharacters such as $().
+        if: github.event_name != 'workflow_dispatch'
+        env:
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          test "v$(node -p "require('./package.json').version")" = "$REF_NAME"
+      - name: Resolve the npm dist-tag
+        id: dist
+        run: |
+          set -euo pipefail
+          version="$(node -p "require('./package.json').version")"
+          if [[ "$version" == *-* ]]; then
+            echo "tag=next" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=latest" >> "$GITHUB_OUTPUT"
+          fi
+      # prepublishOnly type-checks, lints, and tests before the tarball is built.
+      # Stable releases keep npm's default `latest` tag; only prereleases need
+      # an explicit `next` tag (which requires a newer npm CLI under OIDC).
+      - name: Publish to npm
+        env:
+          DIST_TAG: ${{ steps.dist.outputs.tag }}
+        run: |
+          set -euo pipefail
+          if [[ "$DIST_TAG" == "latest" ]]; then
+            npm publish --provenance
+          else
+            npm publish --provenance --tag "$DIST_TAG"
+          fi
+      # Release last, so a release exists only for a version that actually
+      # shipped. Idempotent: an already-created release is left as-is.
+      - name: Cut the release for the pushed tag
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY"; then
+            echo "Release $TAG already exists; leaving it as-is."
+          else
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --generate-notes --verify-tag
+          fi

@@ -1,0 +1,71 @@
+{
+	"name": "pi-cost-ledger",
+	"version": "0.1.0",
+	"description": "Local cost ledger for pi: spend, tokens, and cache efficiency across every session, project, and model",
+	"keywords": [
+		"pi-package",
+		"pi-extension",
+		"pi",
+		"cost",
+		"usage",
+		"tokens",
+		"cache",
+		"ledger"
+	],
+	"license": "MIT",
+	"private": false,
+	"type": "module",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/ningh123/pi-cost-ledger.git"
+	},
+	"bugs": {
+		"url": "https://github.com/ningh123/pi-cost-ledger/issues"
+	},
+	"homepage": "https://github.com/ningh123/pi-cost-ledger#readme",
+	"author": {
+		"name": "Ning",
+		"email": "ningh@ohmrabbit.com"
+	},
+	"files": [
+		"index.ts",
+		"dashboard.ts",
+		"parse.ts",
+		"ledger.ts",
+		"render.ts",
+		"sessions.ts",
+		"settings.ts",
+		"usage.ts",
+		"time.ts",
+		"CHANGELOG.md"
+	],
+	"exports": {
+		".": "./index.ts"
+	},
+	"pi": {
+		"extensions": [
+			"./index.ts"
+		]
+	},
+	"scripts": {
+		"test": "node --test \"__tests__/*.test.ts\"",
+		"typecheck": "tsc -p tsconfig.json",
+		"lint": "biome check .",
+		"format": "biome check --write .",
+		"prepublishOnly": "npm run typecheck && npm run lint && npm test"
+	},
+	"engines": {
+		"node": ">=22.19.0"
+	},
+	"peerDependencies": {
+		"@earendil-works/pi-coding-agent": "*",
+		"@earendil-works/pi-tui": "*"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.6.4",
+		"@earendil-works/pi-coding-agent": "^1.5.0",
+		"@types/node": "^25.9.1",
+		"typescript": "^5.9.3",
+		"@earendil-works/pi-tui": "^1.5.0"
+	}
+}
