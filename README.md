@@ -59,12 +59,12 @@ Project: ~/projects/atlas ▾                          1 today  2 7d  3 30d  4 a
 providers (3) · cost↓         in     out    cache r(w)    hit%   calls      cost
 ▸ anthropic                 1.2M    2.4M     17M(1.1M)   88.1%    1.1k    $18.50
     claude-opus-5-5         1.2M    2.4M     17M(1.1M)   88.1%    1.1k    $18.50
-  opencode-go               600k    1.3M    8.0M(600k)   87.0%     500     $7.00
-    deepseek-v4-pro         600k    1.3M    8.0M(600k)   87.0%     500     $7.00
-  deepseek                  300k    500k    4.0M(300k)   87.0%     300     $2.00
-    deepseek-v4-pro         300k    500k    4.0M(300k)   87.0%     300     $2.00
+  opencode-go               600k    1.3M          8.0M   93.0%     500     $7.00
+    deepseek-v4-pro         600k    1.3M          8.0M   93.0%     500     $7.00
+  deepseek                  300k    500k          4.0M   93.0%     300     $2.00
+    deepseek-v4-pro         300k    500k          4.0M   93.0%     300     $2.00
 ════════════════════════════════════════════════════════════════════════════════
-  total                     2.1M    4.2M     29M(2.0M)   87.6%    1.9k    $27.50
+  total                     2.1M    4.2M     29M(1.1M)   90.1%    1.9k    $27.50
 ↑↓ select · ←→ range · p project · m model · v group · / search · esc quit
 ```
 
@@ -77,8 +77,12 @@ The view needs at least 18 columns. The pinned total stays visible while rows
 scroll; it disappears when the report is empty or a picker is open.
 
 `cache r(w)` is cache read, with cache write in parentheses when it is nonzero
-(`17M` or `17M(1.1M)`). Hit rates use one decimal; a real but tiny rate shows
-as `<0.1%`.
+(`17M` or `17M(1.1M)`). Cache writes are billed only by some providers:
+Anthropic charges 1.25× input (2× for 1h), and Qwen and a few later models
+carry a write rate too. Where caching is automatic — DeepSeek, GLM, most
+OpenAI-compatible gateways — a miss is ordinary input, with no write price to
+charge and no write count in the usage, so the row stays bare. Hit rates use
+one decimal; a real but tiny rate shows as `<0.1%`.
 
 Usage whose log entry names neither a provider nor a model — some nested tool
 results and compaction/branch summaries — appears as a `tools · summaries` row.
